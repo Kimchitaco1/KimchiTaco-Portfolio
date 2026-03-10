@@ -1,0 +1,11 @@
+TransactionID,Date,Customer,Amount,Status
+1001,2026-03-01,Alice Smith,150.50,Completed
+1002,2026-03-02,Bob Johnson,275.25,Completed
+1003,2026-03-03,Carol White,89.99,Pending
+1004,2026-03-04,David Brown,420.00,Completed
+1005,2026-03-05,Eve Davis,156.75,Failed
+1006,2026-03-06,Frank Wilson,299.99,Completed
+1007,2026-03-07,Grace Lee,512.50,Completed
+1008,2026-03-08,Henry Miller,45.00,Pending
+1009,2026-03-09,Iris Taylor,680.25,Completed
+1010,2026-03-09,Jack Anderson,234.80,Completed
