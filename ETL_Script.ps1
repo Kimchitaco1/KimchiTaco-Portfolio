@@ -1,15 +1,19 @@
 
 # param(
-#     [Parameter(Mandatory=$true)][string[]]$SourcePath,
+#     [Parameter(Mandatory=$true)][string[]]$srcFile,
 #     [Parameter(Mandatory=$true)][string[]]$OutputPath,
 #     [Parameter(Mandatory=$true)][string]$Delimiter,
 #     [Parameter(Mandatory=$true)][int[]]$AmountPosition = @()
 # )
-[string[]]$SourcePath='C:\Users\kimch\iCloudDrive\Documents\Github\PowerShell\sourceEx*'
-[string[]]$OutputPath=''
-[string]$Delimiter=''
-[string]$lookupFlag='Y'
-[int[]]$AmountPosition = @()
+[string[]]$srcPath        = 'C:\Users\kimch\iCloudDrive\Documents\Github\PowerShell'
+[string[]]$srcFilePattern = 'sourceEx*'
+[string[]]$OutputPath     = 'C:\Users\kimch\iCloudDrive\Documents\Github\PowerShell'
+[string[]]$OutputFile     = 'output.txt'
+[string]$Delimiter        = ''
+[string]$lookupFile       = ''
+[int[]]$AmountPosition    = @()
+    $global:myExitCode    = 0;
+    $global:myExitCode    = 0;
 
 function healthCheck {
     Get-Volume | % {
@@ -36,41 +40,40 @@ function healthCheck {
 }
 
 function fileExists {
-    param([string[]]$SourcePath)
+    param([string[]]$srcFile)
     # Find the files (error if none found)
-    $srcPaths = Get-ChildItem -Path $SourcePath -ErrorAction SilentlyContinue;
-     if ($srcPaths.Count -eq 0) {
-        throw "No files found matching: $SourcePath";
+    $srcPathsObj = Get-ChildItem -Path $srcFile -ErrorAction SilentlyContinue;
+     if ($srcPathsObj.Count -eq 0) {
+        throw "No files found matching: $srcFile";
     }
-    Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- $($srcPaths.Count) File(s) found";
+    Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- $($srcPathsObj.Count) File(s) found";
 
-    foreach ($file in $srcPaths) {
+    foreach ($file in $srcPathsObj) {
         if (Test-Path $file) {
-            Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File found: $file";
+            Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File found: $($file.Name)";
         }
     }
-    return $srcPaths
+    return $srcPathsObj
 }
 
 function checkDuplicate {
-    param([string[]]$SourcePath)
-    $srcPaths | ForEach-Object { 
-        Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File: $($_.Name)";
-        $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash;
-        write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Hash: $hash";
-        # compare against a db or a file of known hashes to check for duplicates
-    }
+    param([string[]]$currFile)
+    $hash = (Get-FileHash $currFile -Algorithm SHA256).Hash;
+    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Hash: $hash";
+    # compare against a db or a file of known hashes to check for duplicates
 }
 
-function Process-File {
-    # param(
-    #     [string]$Source,
-    #     [string]$Output,
-    #     [string]$Delimiter,
-    #     [int[]]$AmountPos
-    # )
+function fileProcess {
+    param(
+        $currFileObj,
+        [string]$lookupFile,
+        [string]$Output,
+        [string]$Delimiter,
+        [int[]]$AmountPosition
+    )
     
-    # $tmpFile = "$Output.tmp"
+    $tmpFile = "$($currFileObj.DirectoryName + '\' + $currFileObj.BaseName).tmp"
+    write-host $tmpFile
     # $rowCount = 0
     # $totalAmount = 0
     # $seenHashes = @{}
@@ -115,25 +118,35 @@ function Process-File {
     # }
 }
 
-# Main script execution
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Machine health check: Start" -ForegroundColor Cyan;
-healthCheck;
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Machine health check: Completed" -ForegroundColor Cyan;
+try {
+    # Main script execution
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Machine health check: Start" -ForegroundColor Cyan;
+    healthCheck;
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Machine health check: Completed" -ForegroundColor Cyan;
 
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check: Start" -ForegroundColor Cyan;
-$srcPaths = fileExists $SourcePath;
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check: Completed" -ForegroundColor Cyan;
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check: Start" -ForegroundColor Cyan;
+    $srcPathsObj = fileExists "$srcPath\$srcFilePattern";
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check: Completed" -ForegroundColor Cyan;
 
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Start" -ForegroundColor Cyan;
-checkDuplicate $srcPaths;
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Completed" -ForegroundColor Cyan;
+    # Process each file
+    $srcPathsObj | ForEach-Object { 
+        $currFileObj = $_;
+        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Start" -ForegroundColor Cyan;
+        Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File: $($currFileObj.Name)";
+        checkDuplicate $($currFileObj.FullName);
+        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Completed" -ForegroundColor Cyan;
 
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File processing (ETL) check: Start" -ForegroundColor Cyan;
-write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File processing (ETL) check: Completed" -ForegroundColor Cyan;
+        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File processing (ETL) check: Start" -ForegroundColor Cyan;
+        fileProcess $currFileObj $lookupFile $OutputPath $Delimiter $AmountPosition;
+        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File processing (ETL) check: Completed" -ForegroundColor Cyan;
+    }
+}
+catch {
+    [System.String]($_.Exception.GetType().FullName, $_.Exception.Message) | write-Error;
+    $global:myExitCode = 1;
+}
+finally {
+    # exit $global:myExitCode;
+}
 
-# for ($i = 0; $i -lt $SourcePath.Count; $i++) {
-#     Write-Host "Processing: $($SourcePath[$i]) -> $($OutputPath[$i])"
-#     Process-File $SourcePath[$i] $OutputPath[$i] $Delimiter $AmountPosition
-# }
 
-# Write-Host "✓ All files processed successfully"
