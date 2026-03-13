@@ -80,6 +80,7 @@ try {
     $reader            = [System.IO.StreamReader]::new($srcFile, $inputEncodingObj)
     $writer            = [System.IO.StreamWriter]::new($opFile, $false, $outputEncodingObj)
     $outputCols        = ($config.output_columns)
+    $inputCols         = ($config.source_columns)
     if ($opHeader) {
         write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Writing output header";
         
@@ -110,7 +111,7 @@ try {
                 'copy' {
                     # find the index of input and output for this column based on json
                     $opidx = $outputCols.IndexOf($transform.output_column)
-                    $ipidx = $config.source_columns.IndexOf($transform.input_column)
+                    $ipidx = $inputCols.IndexOf($transform.input_column)
                     $value = $fields[$ipidx]
                     if ($transform.format_as -eq 'lowercase') { $value = $value.ToLower() }
                     elseif ($transform.format_as -eq 'uppercase') { $value = $value.ToUpper() }
@@ -141,7 +142,7 @@ try {
                     $parts = @()
                     foreach ($col in $transform.input_columns) {
                         $opidx = $outputCols.IndexOf($transform.output_column)
-                        $ipidx = $config.source_columns.IndexOf($col)
+                        $ipidx = $inputCols.IndexOf($col)
                         $parts += $fields[$ipidx]
                     }
                     $value = ($parts -join $transform.join_with)
@@ -150,7 +151,7 @@ try {
                 'calculate' {
                     # find the index of input and output for this column based on json
                     $opidx = $outputCols.IndexOf($transform.output_column)
-                    $ipidx = $config.source_columns.IndexOf($transform.input_column)
+                    $ipidx = $inputCols.IndexOf($transform.input_column)
                     [decimal]$num = $fields[$ipidx]
                     if ($transform.operation -eq 'multiply') { 
                         $value = [math]::Round($num * $transform.by_value, $transform.round_to_decimals)

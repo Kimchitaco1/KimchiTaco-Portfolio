@@ -1,0 +1,5 @@
+﻿FullName,ContactEmail,PhoneNumber,TransactionAmount,ProcessedDate,ProductID,ProcessedBy,Status
+John Smith,JOHN.SMITH@EXAMPLE.COM,(555) 123-4567,110.0,10/03/2026,hardcoded,ETL_SCRIPT_V1,
+Jane Doe,JANE.DOE@EXAMPLE.COM,(555) 987-6543,2750.0,11/03/2026,hardcoded,ETL_SCRIPT_V1,
+Bob Johnson,BOB.J@EXAMPLE.ORG,(555) 222-3333,5.5,12/03/2026,hardcoded,ETL_SCRIPT_V1,
+Alice Williams,ALICE.W@EXAMPLE.NET,(555) 444-5555,825.0,13/03/2026,hardcoded,ETL_SCRIPT_V1,

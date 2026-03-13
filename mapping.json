@@ -1,10 +1,12 @@
 {
-  "_instructions": "HOW TO USE THIS FILE - Read this first!",
+  "_instructions": "USAGE INSTRUCTIONS: This file defines how to transform input CSV data to output using ETL_JSON.ps1. Configure column names, transformation rules, and validations as needed. Save your changes and run the script to process your data.",
   "instructions": {
-    "step1": "List your INPUT column names under 'source_columns'",
-    "step2": "List your OUTPUT column names under 'output_columns'",
-    "step3": "For each output column, add a row to 'transformations' using one of the types below",
-    "step4": "Save and the script will do the rest!",
+    "step1": "Ensure your input and output files are correctly defined in 'settings' (input_file, output_file, delimiters, encoding, headers).",
+    "step2": "List the column names from your input file under 'source_columns'.",
+    "step3": "List the column names you want in the output under 'output_columns'.",
+    "step4": "Configure transformation rules in 'transformations' for each output column, using the available types (copy, combine, calculate, lookup, fixed, if_then). You can see examples in each transformation.",
+    "step5": "(Optional) Add quality checks in 'quality_checks' to ensure your data meets requirements before exporting.",
+    "step6": "Save this file and run .\\ETL_JSON.ps1 mapping.json to process your data.",
     "transformation_types": {
       "copy": "Use the same value from input column (e.g., FirstName stays FirstName)",
       "combine": "Merge two or more columns together (e.g., FirstName + LastName = FullName)",
@@ -15,8 +17,8 @@
     }
   },
   "settings": {
-    "input_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\test_input*.csv",
-    "output_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\output.csv",
+    "input_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\test_input.csv",
+    "output_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\test_output.csv",
     "input_file_delimiter": ",",
     "output_file_delimiter": ",",
     "input_file_encoding": "UTF-8",
