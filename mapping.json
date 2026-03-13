@@ -45,21 +45,21 @@
   ],
   "transformations": [
     {
-        "input_columns": ["FirstName", "LastName"],
+      "input_columns": ["FirstName", "LastName"],
       "output_column": "FullName",
       "rule_type": "combine",
       "join_with": " ",
       "example": "John Smith"
     },
     {
-        "input_column": "Email",
+      "input_column": "Email",
       "output_column": "ContactEmail",
       "rule_type": "copy",
-      "format_as": "lowercase",
+      "format_as": "uppercase",
       "example": "john.smith@company.com"
     },
     {
-        "input_column": "Phone",
+      "input_column": "Phone",
       "output_column": "PhoneNumber",
       "rule_type": "copy",
       "format_as": "phone",
@@ -67,7 +67,7 @@
       "example": "(555) 123-4567"
     },
     {
-        "input_column": "Amount",
+      "input_column": "Amount",
       "output_column": "TransactionAmount",
       "rule_type": "calculate",
       "operation": "multiply",
@@ -76,19 +76,19 @@
       "example": "100 becomes 110.00 (add 10% tax)"
     },
     {
-        "input_column": "TransactionDate",
+      "input_column": "TransactionDate",
       "output_column": "ProcessedDate",
       "rule_type": "copy",
       "format_as": "date",
-      "format_pattern": "yyyy-MM-dd",
-      "example": "2026-03-12"
+      "format_pattern": "dd/MM/yyyy",
+      "example": "03/12/2026"
     },
     {
       "output_column": "ProductID",
       "rule_type": "fixed",
-      "value": "",
+      "value": "hardcoded",
       "example": "Every row gets this value"
- },
+    },
     {
       "output_column": "ProcessedBy",
       "rule_type": "fixed",
@@ -96,7 +96,7 @@
       "example": "Every row gets this value"
     },
     {
-        "input_column": "Amount",
+      "input_column": "Amount",
       "output_column": "Status",
       "rule_type": "if_then",
       "rules": [

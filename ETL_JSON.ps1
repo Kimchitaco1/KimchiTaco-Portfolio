@@ -100,53 +100,89 @@ try {
         # parse fields
         $fields = $line -split [regex]::Escape($srcDelimiter)
         
-        # compute output values using transformations (SQL-like, memory efficient)
-        $outputValues = @("a") * $config.output_columns.Count
+        # Create an array to hold output values, initialized with empty strings based on the number of output columns
+        $outputValues = @("") * $config.output_columns.Count
+
+        # Apply transformations based on the rules defined in the JSON configuration
         foreach ($transform in $config.transformations) {
             $value = $null
             switch ($transform.rule_type) {
                 'copy' {
-                    # find the index oof input and output for this column based on json
+                    # find the index of input and output for this column based on json
                     $opidx = $outputCols.IndexOf($transform.output_column)
                     $ipidx = $config.source_columns.IndexOf($transform.input_column)
                     $value = $fields[$ipidx]
                     if ($transform.format_as -eq 'lowercase') { $value = $value.ToLower() }
                     elseif ($transform.format_as -eq 'uppercase') { $value = $value.ToUpper() }
+                    elseif ($transform.format_as -eq 'phone') {
+                        $phoneNumber = ""
+                        for (($i = 0), ($j=0); $i -lt $transform.format_pattern.Length; $i++) {
+                            if ($transform.format_pattern[$i] -eq '#') { 
+                                $phoneNumber += $value[$j]
+                                $j++
+                            }
+                            else {
+                                $phoneNumber += $transform.format_pattern[$i]
+                            }
+                        }
+                        $value = $phoneNumber
+                    }
+                    elseif ($transform.format_as -eq 'date') {
+                            if ($transform.input_date_format) {
+                                $date = [datetime]::ParseExact($value, $transform.input_date_format, $null)
+                            } else {
+                                $date = [datetime]::Parse($value)
+                            }
+                            $value = $date.ToString($transform.format_pattern)
+                    }
                     $outputValues[$opidx] = $value
                 }
                 'combine' {
                     $parts = @()
                     foreach ($col in $transform.input_columns) {
-                        $idx = $sourceIndexMap[$col]
-                        $parts += $fields[$idx]
+                        $opidx = $outputCols.IndexOf($transform.output_column)
+                        $ipidx = $config.source_columns.IndexOf($col)
+                        $parts += $fields[$ipidx]
                     }
-                    $value = $parts -join $transform.join_with
+                    $value = ($parts -join $transform.join_with)
+                    $outputValues[$opidx] = $value
                 }
                 'calculate' {
-                    $idx = $sourceIndexMap[$transform.input_column]
-                    [decimal]$num = $fields[$idx]
-                    if ($transform.operation -eq 'multiply') { $value = [math]::Round($num * $transform.by_value, $transform.round_to_decimals) }
-                    elseif ($transform.operation -eq 'add')    { $value = [math]::Round($num + $transform.by_value, $transform.round_to_decimals) }
-                    elseif ($transform.operation -eq 'subtract') { $value = [math]::Round($num - $transform.by_value, $transform.round_to_decimals) }
+                    # find the index of input and output for this column based on json
+                    $opidx = $outputCols.IndexOf($transform.output_column)
+                    $ipidx = $config.source_columns.IndexOf($transform.input_column)
+                    [decimal]$num = $fields[$ipidx]
+                    if ($transform.operation -eq 'multiply') { 
+                        $value = [math]::Round($num * $transform.by_value, $transform.round_to_decimals)
+                    }
+                    elseif ($transform.operation -eq 'add') { 
+                        $value = [math]::Round($num + $transform.by_value, $transform.round_to_decimals)
+                    }
+                    elseif ($transform.operation -eq 'subtract') { 
+                        $value = [math]::Round($num - $transform.by_value, $transform.round_to_decimals)
+                    }
+                    $outputValues[$opidx] = $value
                 }
                 'fixed' { 
+                    $opidx = $outputCols.IndexOf($transform.output_column)
                     $value = $transform.value 
+                    $outputValues[$opidx] = $value
                 }
-                'if_then' {
-                    $idx = $sourceIndexMap[$transform.input_column]
-                    [decimal]$chk = $fields[$idx]
-                    $value = $transform.otherwise_use
-                    foreach ($rule in $transform.rules) {
-                        $cond = switch ($rule.if_value) {
-                            'greater_than' { $chk -gt $rule.compare_to }
-                            'less_than'    { $chk -lt $rule.compare_to }
-                            'equals'       { $chk -eq $rule.compare_to }
-                            'greater_equal'{ $chk -ge $rule.compare_to }
-                            'less_equal'   { $chk -le $rule.compare_to }
-                        }
-                        if ($cond) { $value = $rule.then_use; break }
-                    }
-                }
+                # 'if_then' {
+                #     $idx = $sourceIndexMap[$transform.input_column]
+                #     [decimal]$chk = $fields[$idx]
+                #     $value = $transform.otherwise_use
+                #     foreach ($rule in $transform.rules) {
+                #         $cond = switch ($rule.if_value) {
+                #             'greater_than' { $chk -gt $rule.compare_to }
+                #             'less_than'    { $chk -lt $rule.compare_to }
+                #             'equals'       { $chk -eq $rule.compare_to }
+                #             'greater_equal'{ $chk -ge $rule.compare_to }
+                #             'less_equal'   { $chk -le $rule.compare_to }
+                #         }
+                #         if ($cond) { $value = $rule.then_use; break }
+                #     }
+                # }
             }
         }
         $rowCount++
