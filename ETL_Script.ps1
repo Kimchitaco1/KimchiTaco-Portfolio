@@ -12,12 +12,13 @@
 [string]$Delimiter        = ''
 [string]$lookupFile       = ''
 [int[]]$AmountPosition    = @()
-    $global:myExitCode    = 0;
-    $global:myExitCode    = 0;
+[bool]$header             = $false;
+$global:myExitCode        = 0;
 
 function healthCheck {
-    Get-Volume | % {
-        if($_.DriveLetter -ne $null) {
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ==== Machine health check Start ====" -ForegroundColor Cyan;
+    Get-Volume | ForEach-Object {
+        if($null -ne $_.DriveLetter) {
             $currentStorage = [math]::Round($_.SizeRemaining/1GB, 2);
             $totalStorage   = [math]::Round($_.Size/1GB, 2);
             $currentMemory  = [math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB, 2);
@@ -37,10 +38,12 @@ function healthCheck {
             write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Health check passed for $($_.DriveLetter.ToString()) drive";
         }
     }
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ==== Machine health check Completed ====" -ForegroundColor Cyan;
 }
 
 function fileExists {
     param([string[]]$srcFile)
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ==== File existence check Start ====" -ForegroundColor Cyan;
     # Find the files (error if none found)
     $srcPathsObj = Get-ChildItem -Path $srcFile -ErrorAction SilentlyContinue;
      if ($srcPathsObj.Count -eq 0) {
@@ -53,92 +56,85 @@ function fileExists {
             Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File found: $($file.Name)";
         }
     }
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ==== File existence check Completed ====" -ForegroundColor Cyan;
     return $srcPathsObj
 }
 
 function checkDuplicate {
     param([string[]]$currFile)
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Start" -ForegroundColor Cyan;
     $hash = (Get-FileHash $currFile -Algorithm SHA256).Hash;
     write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Hash: $hash";
-    # compare against a db or a file of known hashes to check for duplicates
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Completed" -ForegroundColor Cyan;
 }
 
 function fileProcess {
     param(
         $currFileObj,
         [string]$lookupFile,
-        [string]$Output,
+        [string]$OutputPath,
         [string]$Delimiter,
         [int[]]$AmountPosition
     )
-    
-    $tmpFile = "$($currFileObj.DirectoryName + '\' + $currFileObj.BaseName).tmp"
-    write-host $tmpFile
-    # $rowCount = 0
-    # $totalAmount = 0
-    # $seenHashes = @{}
-    
-    # try {
-    #     $reader = [System.IO.File]::OpenText($Source)
-    #     $writer = [System.IO.File]::CreateText($tmpFile)
-        
-    #     while ($null -ne ($line = $reader.ReadLine())) {
-    #         $hash = [System.Security.Cryptography.SHA256]::ComputeHash([System.Text.Encoding]::UTF8.GetBytes($line)) -join ''
+    $fileSize = (Get-Item $currFileObj.FullName).Length;
+    $fileSize = [math]::Round($fileSize / 1KB, 2);
+    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ----  File size: $fileSize KB";
+    $rowCount = (Get-Content $currFileObj.FullName | Measure-Object -Line).Lines
+    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ----  Row count: $rowCount";
+
+    if ($hasHeader -eq $true) {
+        $header = Get-Content $currFileObj.FullName -Head 1
+        $header | Out-File "$OutputPath\$OutputFile"
+    }
+    try {
+        $reader = [System.IO.File]::OpenText($currFileObj.FullName)
+        $writer = [System.IO.File]::CreateText("$OutputPath\$OutputFile")
+        while ($null -ne ($line = $reader.ReadLine())) {
+            $hash = [System.Security.Cryptography.SHA256]::ComputeHash([System.Text.Encoding]::UTF8.GetBytes($line)) -join ''
+            if ($seenHashes.ContainsKey($hash)) {
+                Write-Warning "Duplicate row skipped (hash: $hash `n$line)"
+                continue
+            }
+            $seenHashes[$hash] = $true
+            $writer.WriteLine($line)
+            $rowCount++
             
-    #         if ($seenHashes.ContainsKey($hash)) {
-    #             Write-Warning "Duplicate row skipped (hash: $hash)"
-    #             continue
-    #         }
-            
-    #         $seenHashes[$hash] = $true
-    #         $writer.WriteLine($line)
-    #         $rowCount++
-            
-    #         if ($AmountPos.Count -gt 0) {
-    #             $fields = $line -split [regex]::Escape($Delimiter)
-    #             foreach ($pos in $AmountPos) {
-    #                 if ($pos -lt $fields.Count -and [decimal]::TryParse($fields[$pos], [ref]$null)) {
-    #                     $totalAmount += [decimal]$fields[$pos]
-    #                 }
-    #             }
-    #         }
-    #     }
+            if ($AmountPos.Count -gt 0) {
+                $fields = $line -split [regex]::Escape($Delimiter)
+                foreach ($pos in $AmountPos) {
+                    if ($pos -lt $fields.Count -and [decimal]::TryParse($fields[$pos], [ref]$null)) {
+                        $totalAmount += [decimal]$fields[$pos]
+                    }
+                }
+            }
+        }
         
-    #     $writer.Close()
-    #     $reader.Close()
+        $writer.Close()
+        $reader.Close()
         
-    #     Write-Host "✓ File processed: $rowCount rows, Total amount: $totalAmount"
-    #     Move-Item $tmpFile $Output -Force
-    # }
-    # catch {
-    #     if ($writer) { $writer.Close() }
-    #     if ($reader) { $reader.Close() }
-    #     Remove-Item $tmpFile -ErrorAction SilentlyContinue
-    #     throw $_
-    # }
+        Write-Host "✓ File processed: $rowCount rows, Total amount: $totalAmount"
+        Move-Item $tmpFile $Output -Force
+    }
+    catch {
+        if ($writer) { $writer.Close() }
+        if ($reader) { $reader.Close() }
+        Remove-Item $tmpFile -ErrorAction SilentlyContinue
+        throw $_
+    }
+
+    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ==== File $($currFileObj.Name) processing Completed ====" -ForegroundColor Cyan;
 }
 
 try {
-    # Main script execution
-    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Machine health check: Start" -ForegroundColor Cyan;
     healthCheck;
-    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Machine health check: Completed" -ForegroundColor Cyan;
-
-    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check: Start" -ForegroundColor Cyan;
     $srcPathsObj = fileExists "$srcPath\$srcFilePattern";
-    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check: Completed" -ForegroundColor Cyan;
-
     # Process each file
     $srcPathsObj | ForEach-Object { 
         $currFileObj = $_;
-        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Start" -ForegroundColor Cyan;
-        Write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File: $($currFileObj.Name)";
+        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ==== File $($currFileObj.Name) processing Start ====" -ForegroundColor Cyan;
         checkDuplicate $($currFileObj.FullName);
-        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File duplicate check: Completed" -ForegroundColor Cyan;
-
-        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File processing (ETL) check: Start" -ForegroundColor Cyan;
         fileProcess $currFileObj $lookupFile $OutputPath $Delimiter $AmountPosition;
-        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File processing (ETL) check: Completed" -ForegroundColor Cyan;
+        write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ==== File $($currFileObj.Name) processing Completed ====" -ForegroundColor Cyan;
     }
 }
 catch {

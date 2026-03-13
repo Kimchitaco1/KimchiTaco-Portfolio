@@ -1,0 +1,139 @@
+{
+  "_instructions": "HOW TO USE THIS FILE - Read this first!",
+  "instructions": {
+    "step1": "List your INPUT column names under 'source_columns'",
+    "step2": "List your OUTPUT column names under 'output_columns'",
+    "step3": "For each output column, add a row to 'transformations' using one of the types below",
+    "step4": "Save and the script will do the rest!",
+    "transformation_types": {
+      "copy": "Use the same value from input column (e.g., FirstName stays FirstName)",
+      "combine": "Merge two or more columns together (e.g., FirstName + LastName = FullName)",
+      "calculate": "Do math: add, subtract, multiply (e.g., Price * 1.1 = Price with tax)",
+      "lookup": "Look up a value in your lookup file (e.g., find ProductName by ProductCode)",
+      "fixed": "Use the same value for every row (e.g., all records get ProcessedBy=SCRIPT_V1)",
+      "if_then": "Change value based on a rule (e.g., if Amount > 1000 then Status=FLAGGED)"
+    }
+  },
+  "settings": {
+    "input_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\test_input*.csv",
+    "output_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\output.csv",
+    "input_file_delimiter": ",",
+    "output_file_delimiter": ",",
+    "input_file_encoding": "UTF-8",
+    "output_file_encoding": "UTF-8",
+    "input_file_has_header": true,
+    "output_file_has_header": true
+  },
+  "source_columns": [
+    "FirstName",
+    "LastName",
+    "Email",
+    "Phone",
+    "Amount",
+    "TransactionDate",
+    "ProductCode"
+  ],
+  "output_columns": [
+    "FullName",
+    "ContactEmail",
+    "PhoneNumber",
+    "TransactionAmount",
+    "ProcessedDate",
+    "ProductID",
+    "ProcessedBy",
+    "Status"
+  ],
+  "transformations": [
+    {
+        "input_columns": ["FirstName", "LastName"],
+      "output_column": "FullName",
+      "rule_type": "combine",
+      "join_with": " ",
+      "example": "John Smith"
+    },
+    {
+        "input_column": "Email",
+      "output_column": "ContactEmail",
+      "rule_type": "copy",
+      "format_as": "lowercase",
+      "example": "john.smith@company.com"
+    },
+    {
+        "input_column": "Phone",
+      "output_column": "PhoneNumber",
+      "rule_type": "copy",
+      "format_as": "phone",
+      "format_pattern": "(###) ###-####",
+      "example": "(555) 123-4567"
+    },
+    {
+        "input_column": "Amount",
+      "output_column": "TransactionAmount",
+      "rule_type": "calculate",
+      "operation": "multiply",
+      "by_value": 1.1,
+      "round_to_decimals": 2,
+      "example": "100 becomes 110.00 (add 10% tax)"
+    },
+    {
+        "input_column": "TransactionDate",
+      "output_column": "ProcessedDate",
+      "rule_type": "copy",
+      "format_as": "date",
+      "format_pattern": "yyyy-MM-dd",
+      "example": "2026-03-12"
+    },
+    {
+      "output_column": "ProductID",
+      "rule_type": "fixed",
+      "value": "",
+      "example": "Every row gets this value"
+ },
+    {
+      "output_column": "ProcessedBy",
+      "rule_type": "fixed",
+      "value": "ETL_SCRIPT_V1",
+      "example": "Every row gets this value"
+    },
+    {
+        "input_column": "Amount",
+      "output_column": "Status",
+      "rule_type": "if_then",
+      "rules": [
+        {
+          "if_value": "greater_than",
+          "compare_to": 1000,
+          "then_use": "FLAGGED"
+        },
+        {
+          "if_value": "less_than",
+          "compare_to": 10,
+          "then_use": "REVIEW"
+        }
+      ],
+      "otherwise_use": "PROCESSED",
+      "example": "Amount > 1000? Use FLAGGED. Amount < 10? Use REVIEW. Else PROCESSED"
+    }
+  ],
+  "quality_checks": [
+    {
+      "column": "ContactEmail",
+      "check_type": "must_be_email",
+      "error_message": "Email format is invalid"
+    },
+    {
+      "column": "TransactionAmount",
+      "check_type": "must_be_between",
+      "minimum": 0,
+      "maximum": 999999.99,
+      "error_message": "Amount must be between 0 and 999999.99"
+    },
+    {
+      "column": "PhoneNumber",
+      "check_type": "must_be_length",
+      "min_length": 10,
+      "max_length": 15,
+      "error_message": "Phone number should be 10-15 characters"
+    }
+  ]
+}

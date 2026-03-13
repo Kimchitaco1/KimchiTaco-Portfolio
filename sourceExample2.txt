@@ -1,2 +1,0 @@
-TransactionID,Date,Customer,Amount,Status
-1011,2026-03-01,Alice Smith,150.50,Completed

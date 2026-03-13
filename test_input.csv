@@ -1,0 +1,6 @@
+FirstName,LastName,Email,Phone,Amount,TransactionDate,ProductCode
+John,Smith,john.smith@example.com,5551234567,100,2026-03-10,PROD001
+Jane,Doe,jane.doe@example.com,5559876543,2500,2026-03-11,PROD002
+Bob,Johnson,bob.j@example.org,5552223333,5,2026-03-12,PROD003
+Alice,Williams,alice.w@example.net,5554445555,750,2026-03-13,PROD004
+Eve,Adams,eve.adams@sample.com,5556667777,0,2026-03-14,PROD005
