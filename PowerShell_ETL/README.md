@@ -1,6 +1,6 @@
 # ETL_JSON.ps1
 
-![Example](example.png)
+![Example](Img/example.png)
 
 A PowerShell script for performing ETL (Extract, Transform, Load) operations on JSON data using a customizable mapping file.
 

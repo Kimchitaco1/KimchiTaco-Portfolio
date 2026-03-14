@@ -17,8 +17,8 @@
     }
   },
   "settings": {
-    "input_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\test_input.csv",
-    "output_file": "C:\\Users\\kimch\\iCloudDrive\\Documents\\Github\\PowerShell\\test_output.csv",
+    "input_file": "Files/test_input.csv",
+    "output_file": "Files/test_output.csv",
     "input_file_delimiter": ",",
     "output_file_delimiter": ",",
     "input_file_encoding": "UTF-8",

@@ -27,44 +27,45 @@ function healthCheck {
 function jsonETL_initialization {
     # Read ETL configuration from JSON file
     write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== JSON file import started ========" -ForegroundColor Cyan;
-    $global:configPath = "C:\Users\kimch\iCloudDrive\Documents\Github\PowerShell\mapping.json";
+    $scriptRoot = $PSScriptRoot
+    $global:configPath = Join-Path $scriptRoot 'Mapping\mapping.json'
     if(Test-Path $configPath) {
-        write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Configuration file found: $configPath" -ForegroundColor Green;
+        write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Configuration file found: $configPath" -ForegroundColor Green;
     } else {
         throw "FATAL ERROR: Configuration file not found at path: $configPath";
     }
     $global:config = Get-Content -Raw $configPath | ConvertFrom-Json;
 
-    # Extract json data
-    $global:srcFile      = $global:config.settings.input_file
+    # Extract json data and resolve file paths relative to script root
+    $global:srcFile      = Join-Path $scriptRoot $global:config.settings.input_file
     $global:srcDelimiter = $global:config.settings.input_file_delimiter
     $global:srcHeader    = $global:config.settings.input_file_has_header
     $global:srcEncoding  = $global:config.settings.input_file_encoding
-    $global:opFile       = $global:config.settings.output_file
+    $global:opFile       = Join-Path $scriptRoot $global:config.settings.output_file
     $global:opDelimiter  = $global:config.settings.output_file_delimiter
     $global:opHeader     = $global:config.settings.output_file_has_header
     $global:opEncoding   = $global:config.settings.output_file_encoding
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Source file: $srcFile"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Source delimiter: $srcDelimiter"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Source header: $srcHeader"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Source encoding: $srcEncoding"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Output file: $opFile"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Output delimiter: $opDelimiter"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Output header: $opHeader"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Output encoding: $opEncoding"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Source file: $srcFile"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Source delimiter: $srcDelimiter"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Source header: $srcHeader"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Source encoding: $srcEncoding"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Output file: $opFile"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Output delimiter: $opDelimiter"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Output header: $opHeader"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Output encoding: $opEncoding"
     # validate all required configuration values are present
     if (-not ($srcFile -and $srcDelimiter -and $srcHeader -and $srcEncoding -and $opFile -and $opDelimiter -and $opHeader -and $opEncoding)) {
         throw "FATAL ERROR: One or more required configuration values are missing. Please check the JSON file."
     }
 
     # Check if source file exists
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check started"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- File existence check started"
     $global:srcFile = Get-ChildItem -Path $srcFile;
     if ($srcFile.Count -gt 1) {
         throw "FATAL ERROR: Multiple source files found.";
     }
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- File existence check completed"
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== JSON file import completed ========" -ForegroundColor Green;
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- File existence check completed"
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ======== JSON file import completed ========" -ForegroundColor Green;
 }
 
 healthCheck
@@ -88,6 +89,7 @@ try {
     }
     
     $rowCount = 0
+    $rejCount = 0
     $skipped = $false
     
     while ($null -ne ($line = $reader.ReadLine())) {
@@ -169,33 +171,39 @@ try {
                     $value = $transform.value 
                     $outputValues[$opidx] = $value
                 }
-                # 'if_then' {
-                #     $idx = $sourceIndexMap[$transform.input_column]
-                #     [decimal]$chk = $fields[$idx]
-                #     $value = $transform.otherwise_use
-                #     foreach ($rule in $transform.rules) {
-                #         $cond = switch ($rule.if_value) {
-                #             'greater_than' { $chk -gt $rule.compare_to }
-                #             'less_than'    { $chk -lt $rule.compare_to }
-                #             'equals'       { $chk -eq $rule.compare_to }
-                #             'greater_equal'{ $chk -ge $rule.compare_to }
-                #             'less_equal'   { $chk -le $rule.compare_to }
-                #         }
-                #         if ($cond) { $value = $rule.then_use; break }
-                #     }
-                # }
+                'if_then' {
+                    $opidx        = $outputCols.IndexOf($transform.output_column)
+                    $ipidx        = $inputCols.IndexOf($transform.input_column)
+                    [decimal]$chk = $fields[$ipidx]
+                    $value        = $transform.otherwise_use
+                    foreach ($rule in $transform.rules) {
+                        $cond = $false
+                        switch ($rule.if_value) {
+                            'greater_than'  { if ($chk -gt $rule.compare_to) { $cond = $true } }
+                            'less_than'     { if ($chk -lt $rule.compare_to) { $cond = $true } }
+                            'equals'        { if ($chk -eq $rule.compare_to) { $cond = $true } }
+                            'greater_equal' { if ($chk -ge $rule.compare_to) { $cond = $true } }
+                            'less_equal'    { if ($chk -le $rule.compare_to) { $cond = $true } }
+                        }
+                        if ($cond) { 
+                            $value = $rule.then_use
+                            Write-Warning "Row $($rowCount) : Condition failed for '$($transform.input_column)' with value '$chk'. Setting '$($transform.output_column)' to '$value'."
+                            $rejCount++
+                            break 
+                        }
+                    }
+                    $outputValues[$opidx] = $value
+                }
             }
         }
         $rowCount++
         # write the transformed row immediately
         $writer.WriteLine(($outputValues -join $opDelimiter))
-        
-        # if ($rowCount % 1000 -eq 0) { 
-            # write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Processed $rowCount rows" 
-        # }
     }
     
     write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Total rows processed: $rowCount" -ForegroundColor Green
+    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Total rows rejected: $rejCount" -ForegroundColor Green
+    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== File processing completed ========" -ForegroundColor Green;
 }
 catch {
     write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Error during file processing $rowCount : $($_.Exception.Message)" -ForegroundColor Red
@@ -204,4 +212,3 @@ finally {
     if ($reader) { $reader.Close() }
     if ($writer) { $writer.Close() }
 }
-# write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== File processing completed ========" -ForegroundColor Green;
