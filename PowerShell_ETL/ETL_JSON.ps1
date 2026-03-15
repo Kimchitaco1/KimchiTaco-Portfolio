@@ -87,6 +87,7 @@ try {
         write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Writing output header";
         
         $writer.WriteLine($outputCols -join $opDelimiter)
+        $rejwriter.WriteLine($outputCols -join $opDelimiter)
     }
     
     $rowCount = 0
@@ -197,6 +198,7 @@ try {
         }
         # Quality checks before writing output
         if ($config.quality_checks) {
+            $cond = $false
             foreach ($qualityChk in $config.quality_checks) {
                 $opidx    = $outputCols.IndexOf($qualityChk.column)
                 $checkVal = $outputValues[$opidx]
@@ -207,11 +209,11 @@ try {
                     }
                     'must_be_between' {
                         $qualityError = $qualityChk.error_message
-                        $chkVal -ge [decimal]$qualityChk.min_value -and $chkVal -le [decimal]$qualityChk.max_value
+                        $checkVal -lt $qualityChk.minimum -or $checkVal -gt $qualityChk.maximum
                     }
                     'must_be_length' {
-                        $qualityError = $qualityChk.error_message
-                        ($checkVal -replace('\D', '').Length) -eq $qualityChk.length
+                        $qualityError   = $qualityChk.error_message
+                        ($checkVal -replace '\D', '').Length -ne $qualityChk.length
                     }
                 }
                 if ($cond) {
@@ -221,10 +223,12 @@ try {
                     break;
                 }
             }
+            # write the transformed row immediately
+            if(!$cond){
+                $rowCount++
+                $writer.WriteLine(($outputValues -join $opDelimiter))
+            }
         }
-        # write the transformed row immediately
-        $rowCount++
-        $writer.WriteLine(($outputValues -join $opDelimiter))
     }
     
     write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Total rows processed: $rowCount" -ForegroundColor Green

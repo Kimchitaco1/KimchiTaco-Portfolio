@@ -133,9 +133,8 @@
     {
       "column": "PhoneNumber",
       "check_type": "must_be_length",
-      "min_length": 10,
-      "max_length": 15,
-      "error_message": "Phone number should be 10-15 characters"
+      "length": 10,
+      "error_message": "Phone number should be 10 characters"
     }
   ]
 }
