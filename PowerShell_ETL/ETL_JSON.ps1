@@ -1,5 +1,5 @@
 function healthCheck {
-    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== Machine health check Start ========" -ForegroundColor Cyan;
+    write-Host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ======== Machine health check Start ========" -ForegroundColor Cyan;
     Get-Volume | ForEach-Object {
         if($null -ne $_.DriveLetter) {
             $currentStorage = [math]::Round($_.SizeRemaining/1GB, 2);
@@ -7,26 +7,26 @@ function healthCheck {
             $currentMemory  = [math]::Round((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1MB, 2);
             $totalMemory    = [math]::Round((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize/1MB, 2);
 
-            write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Health check start for $($_.DriveLetter.ToString()) drive";
-            write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Total storage: $totalStorage GB total";
-            write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Free storage: $currentStorage GB total";
+            write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Health check start for $($_.DriveLetter.ToString()) drive";
+            write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Total storage: $totalStorage GB total";
+            write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Free storage: $currentStorage GB total";
             if($($totalStorage - $currentStorage) -lt ($totalStorage * 0.1)) {
-                write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Warning: Low disk space on drive $($_.DriveLetter.ToString())" -ForegroundColor Yellow;
+                write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Warning: Low disk space on drive $($_.DriveLetter.ToString())" -ForegroundColor Yellow;
             }
-            write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Total memory: $totalMemory GB total";
-            write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Free memory: $currentMemory GB total";
+            write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Total memory: $totalMemory GB total";
+            write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Free memory: $currentMemory GB total";
             if($($totalMemory - $currentMemory) -lt ($totalMemory * 0.1)) {
-                write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Warning: Low memory on drive $($_.DriveLetter.ToString())" -ForegroundColor Yellow;
+                write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Warning: Low memory on drive $($_.DriveLetter.ToString())" -ForegroundColor Yellow;
             }
-            write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Health check passed for $($_.DriveLetter.ToString()) drive";
+            write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Health check passed for $($_.DriveLetter.ToString()) drive";
         }
     }
-    write-Host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== Machine health check Completed ========" -ForegroundColor Cyan;
+    write-Host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ======== Machine health check Completed ========" -ForegroundColor Cyan;
 }
 
 function jsonETL_initialization {
     # Read ETL configuration from JSON file
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== JSON file import started ========" -ForegroundColor Cyan;
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ======== JSON file import started ========" -ForegroundColor Cyan;
     $scriptRoot = $PSScriptRoot
     $global:configPath = Join-Path $scriptRoot 'Mapping\mapping.json'
     if(Test-Path $configPath) {
@@ -72,7 +72,7 @@ healthCheck
 jsonETL_initialization
 
 # begin memory-efficient ETL processing
-write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== File processing started ========" -ForegroundColor Cyan;
+write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ======== File processing started ========" -ForegroundColor Cyan;
 
 # open input stream reader and output stream writer using configured encodings
 try {
@@ -84,19 +84,19 @@ try {
     $outputCols        = ($config.output_columns)
     $inputCols         = ($config.source_columns)
     if ($opHeader) {
-        write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Writing output header";
+        write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Writing output header";
         
         $writer.WriteLine($outputCols -join $opDelimiter)
     }
     
     $rowCount = 0
     $rejCount = 0
-    $skipped = $false
+    $skipped  = $false
     
     while ($null -ne ($line = $reader.ReadLine())) {
         # Skip header row if configured to do so
         if ($srcHeader -and -not $skipped) {
-            write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Skipping first input row";
+            write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Skipping first input row";
             $skipped = $true
             continue
         }
@@ -196,7 +196,6 @@ try {
             }
         }
         # Quality checks before writing output
-        $qualityFailed = $false
         if ($config.quality_checks) {
             foreach ($qualityChk in $config.quality_checks) {
                 $opidx    = $outputCols.IndexOf($qualityChk.column)
@@ -228,12 +227,12 @@ try {
         $writer.WriteLine(($outputValues -join $opDelimiter))
     }
     
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Total rows processed: $rowCount" -ForegroundColor Green
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Total rows rejected: $rejCount" -ForegroundColor Green
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ======== File processing completed ========" -ForegroundColor Green;
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Total rows processed: $rowCount" -ForegroundColor Green
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Total rows rejected: $rejCount" -ForegroundColor Green
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ======== File processing completed ========" -ForegroundColor Green;
 }
 catch {
-    write-host "$(Get-Date -UFormat "%m-%d-%Y %R:%S") ---- Error during file processing $rowCount : $($_.Exception.Message)" -ForegroundColor Red
+    write-host "$(Get-Date -UFormat '%m-%d-%Y %R:%S') ---- Error during file processing $rowCount : $($_.Exception.Message)" -ForegroundColor Red
 }
 finally { 
     if ($reader) { $reader.Close() }
