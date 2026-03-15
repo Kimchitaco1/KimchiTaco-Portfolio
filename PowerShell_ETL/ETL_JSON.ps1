@@ -80,6 +80,7 @@ try {
     $outputEncodingObj = [System.Text.Encoding]::GetEncoding($opEncoding)
     $reader            = [System.IO.StreamReader]::new($srcFile, $inputEncodingObj)
     $writer            = [System.IO.StreamWriter]::new($opFile, $false, $outputEncodingObj)
+    $rejwriter         = [System.IO.StreamWriter]::new($opFile.replace(".csv", "_rejected.csv"), $false, $outputEncodingObj)
     $outputCols        = ($config.output_columns)
     $inputCols         = ($config.source_columns)
     if ($opHeader) {
@@ -187,8 +188,6 @@ try {
                         }
                         if ($cond) { 
                             $value = $rule.then_use
-                            Write-Warning "Row $($rowCount) : Condition failed for '$($transform.input_column)' with value '$chk'. Setting '$($transform.output_column)' to '$value'."
-                            $rejCount++
                             break 
                         }
                     }
@@ -196,8 +195,36 @@ try {
                 }
             }
         }
-        $rowCount++
+        # Quality checks before writing output
+        $qualityFailed = $false
+        if ($config.quality_checks) {
+            foreach ($qualityChk in $config.quality_checks) {
+                $opidx    = $outputCols.IndexOf($qualityChk.column)
+                $checkVal = $outputValues[$opidx]
+                $cond     = switch ($qualityChk.check_type) {
+                    'must_be_email' {
+                        $qualityError = $qualityChk.error_message
+                        $checkVal -notmatch '^[\w\.-]+@[\w\.-]+\.\w+$'
+                    }
+                    'must_be_between' {
+                        $qualityError = $qualityChk.error_message
+                        $chkVal -ge [decimal]$qualityChk.min_value -and $chkVal -le [decimal]$qualityChk.max_value
+                    }
+                    'must_be_length' {
+                        $qualityError = $qualityChk.error_message
+                        ($checkVal -replace('\D', '').Length) -eq $qualityChk.length
+                    }
+                }
+                if ($cond) {
+                    Write-Warning "Row $($rowCount): $checkVal failed quality check: $qualityError"
+                    $rejCount++
+                    $rejwriter.WriteLine(($outputValues -join $opDelimiter))
+                    break;
+                }
+            }
+        }
         # write the transformed row immediately
+        $rowCount++
         $writer.WriteLine(($outputValues -join $opDelimiter))
     }
     
@@ -210,5 +237,5 @@ catch {
 }
 finally { 
     if ($reader) { $reader.Close() }
-    if ($writer) { $writer.Close() }
+    if ($writer) { $writer.Close();$rejwriter.Close() }
 }
