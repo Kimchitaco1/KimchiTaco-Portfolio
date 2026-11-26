@@ -1,0 +1,3 @@
+4c97629eee05caef2e967d7f5a03a13c4a616decd102425c53623bc569ce09aa  Inkpact-1.0.0-portable.zip
+a3362528bea36b5aaac064ebd6898d69b1b3178cc792eeb847e69805d3ee90bb  Inkpact.exe
+dd8984c55fdc58c631b0fedb67757e1bbe5dccfa56825b55ca70c3a7f8c8bc24  Inkpact_1.0.0_x64-setup.exe
